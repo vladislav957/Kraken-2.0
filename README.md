@@ -18,4 +18,6 @@ Kraken — это модульная платформа для тестиров�
 
   ## Установка
 
-  git clon
+  git clone https://github.com/vladislav957/Kraken-2.0.git
+
+[Kraken 2.pdf](https://github.com/user-attachments/files/20080429/Kraken.2.pdf)
