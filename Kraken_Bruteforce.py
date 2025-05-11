@@ -18,3 +18,4 @@ hashed_password = hashlib.sha256(password.encode()).hexdigest()
 
 cracked = brute_force_sha256(hashed_password, max_length=3)
 print(f"Найденный пароль: {cracked}")
+
