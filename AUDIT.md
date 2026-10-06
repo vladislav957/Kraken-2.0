@@ -97,6 +97,19 @@ python3 miner_audit.py --target 192.168.1.50 --api-port 4028 --output report.md
 - **Miner:** restrict the CGMiner API with `api-allow`/`api-network`, change
   default web passwords, keep both on your management VLAN behind a VPN.
 
+## Tests
+
+The suite ships with stdlib `unittest` tests (no dependencies, no network):
+
+```bash
+./run-tests.sh                       # or: python3 -m unittest discover -s tests
+./run-tests.sh -v                    # verbose
+```
+
+They cover the single-target guard, address/entropy/reporting helpers, each
+auditor's findings on insecure vs hardened inputs, file-permission checks, and
+the miner API against a tiny in-process fake CGMiner server.
+
 ## Scope / ethics
 
 Run these only against infrastructure you own or have **written authorization**
