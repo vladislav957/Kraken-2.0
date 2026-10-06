@@ -1,0 +1,51 @@
+# ============================================================================
+# bitcoin.conf — hardened reference template
+# ----------------------------------------------------------------------------
+# A safe starting point for a self-hosted Bitcoin Core node. The goal: the RPC
+# interface (full control of the node) is reachable ONLY from the local machine,
+# and no plaintext secret is stored on disk. Copy, adjust, and audit with:
+#
+#     python3 node_audit.py --conf /path/to/bitcoin.conf
+# ============================================================================
+
+# --- RPC server -------------------------------------------------------------
+# Enable the JSON-RPC server so bitcoin-cli / your app can talk to the node.
+server=1
+
+# Bind RPC to localhost ONLY. This is the single most important line: it keeps
+# the full-control interface off every public interface.
+rpcbind=127.0.0.1
+
+# Belt-and-suspenders: even on localhost, only accept RPC from 127.0.0.1.
+rpcallowip=127.0.0.1
+
+# Authentication: do NOT set rpcuser/rpcpassword here.
+# By leaving them out, Core uses cookie authentication (.cookie in the datadir),
+# which stores no plaintext secret in this file.
+#
+# If you genuinely need a fixed credential (e.g. a remote app over an SSH
+# tunnel), generate a SALTED entry with the official helper and paste the
+# rpcauth line it prints — never a plaintext rpcpassword:
+#
+#     python3 ./share/rpcauth/rpcauth.py <username>
+#
+# rpcauth=<username>:<salt>$<hmac>
+
+# --- P2P network ------------------------------------------------------------
+# Serving blocks to peers (port 8333) is normal and safe to expose. Set
+# listen=0 only if you intend to run a private, non-reachable node.
+listen=1
+
+# --- Remote administration (the safe way) -----------------------------------
+# Do NOT open the RPC port on the internet. To reach RPC from another machine,
+# forward it over SSH instead of binding publicly:
+#
+#     ssh -N -L 8332:127.0.0.1:8332 you@your-node
+#
+# ...then point your client at 127.0.0.1:8332 on your laptop.
+
+# --- Housekeeping -----------------------------------------------------------
+# Keep the datadir private so the .cookie file and wallet stay owner-only:
+#     chmod 700 ~/.bitcoin
+# Keep this config owner-only (especially if you ever add an rpcauth line):
+#     chmod 600 ~/.bitcoin/bitcoin.conf
