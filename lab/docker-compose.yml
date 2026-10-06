@@ -1,0 +1,30 @@
+# Regtest Bitcoin Core lab for practising node_audit.py legally.
+#
+# Two nodes, both on the isolated regtest network (no real coins, no real
+# peers):
+#   node-hardened  — the way it SHOULD look. RPC on loopback, cookie auth,
+#                    no published ports. Reach it with `docker compose exec`.
+#   node-insecure  — deliberately misconfigured, so the auditor has something
+#                    to find. Published ONLY to 127.0.0.1 on your host.
+#
+# Swap the image/tag if you like:  BITCOIND_IMAGE=yourimage:tag docker compose up
+services:
+  node-hardened:
+    image: ${BITCOIND_IMAGE:-ruimarinho/bitcoin-core:24}
+    container_name: lab-node-hardened
+    command: -printtoconsole
+    volumes:
+      - ./conf/hardened.bitcoin.conf:/home/bitcoin/.bitcoin/bitcoin.conf:ro
+    restart: "no"
+
+  node-insecure:
+    image: ${BITCOIND_IMAGE:-ruimarinho/bitcoin-core:24}
+    container_name: lab-node-insecure
+    profiles: ["insecure"]        # only starts with `--profile insecure`
+    command: -printtoconsole
+    volumes:
+      - ./conf/insecure.bitcoin.conf:/home/bitcoin/.bitcoin/bitcoin.conf:ro
+    ports:
+      # host 127.0.0.1:18444  ->  container 18443  (loopback only, by design)
+      - "127.0.0.1:18444:18443"
+    restart: "no"
