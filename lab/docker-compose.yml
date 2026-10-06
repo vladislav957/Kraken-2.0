@@ -28,3 +28,17 @@ services:
       # host 127.0.0.1:18444  ->  container 18443  (loopback only, by design)
       - "127.0.0.1:18444:18443"
     restart: "no"
+
+  # Fake CGMiner API so miner_audit.py has a safe local target. No real miner,
+  # no real hashrate — it just returns canned read-only version/summary JSON.
+  miner-emulator:
+    image: python:3.12-slim
+    container_name: lab-miner-emulator
+    command: python /app/miner_emulator.py --host 0.0.0.0 --port 4028
+    volumes:
+      - ./miner_emulator.py:/app/miner_emulator.py:ro
+    ports:
+      # loopback only — audit it from the host with:
+      #   python3 ../miner_audit.py --target 127.0.0.1:4028
+      - "127.0.0.1:4028:4028"
+    restart: "no"

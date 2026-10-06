@@ -1,79 +1,106 @@
-# Node Security Audit (`node_audit.py`)
+# Kraken Audit Suite
 
-A **defensive, read-only** auditor for a Bitcoin Core node you own or are
-explicitly authorized to audit.
+A set of **defensive, read-only** auditors for infrastructure you own or are
+explicitly authorized to test. None of them scan networks, run exploits, cause
+denial of service, or brute-force credentials.
 
-It is deliberately *not* an attack tool:
-
-| It does | It does **not** |
-| --- | --- |
-| Read your local `bitcoin.conf` | Scan remote hosts or IP ranges |
-| Check that file's permissions | Connect to the network or send traffic |
-| List **this machine's** listening sockets | Guess, test, or brute-force any credential |
-| Print findings + how to fix them | Run exploits, DoS, or "stealth" anything |
-
-Because it only ever touches local files and local sockets, it cannot be
-pointed at a third party — which is the point. "Find the holes before an
-attacker does, then close them" is done by **inspecting your own
-configuration**, not by attacking anyone.
-
-## Usage
-
-```bash
-# Auto-detect bitcoin.conf in the usual locations
-python3 node_audit.py
-
-# Audit a specific node's config
-python3 node_audit.py --conf ~/.bitcoin/bitcoin.conf
-
-# Write a Markdown report (good for keeping a record / CI artifact)
-python3 node_audit.py --conf ~/.bitcoin/bitcoin.conf --output audit-report.md
-
-# Machine-readable output
-python3 node_audit.py --json
-
-# Skip the local socket check (e.g. no ss/netstat available)
-python3 node_audit.py --no-sockets
-```
-
-The process exits non-zero if any **CRITICAL** or **HIGH** finding is present,
-so you can wire it into a cron job or CI check:
-
-```bash
-python3 node_audit.py --conf ~/.bitcoin/bitcoin.conf || echo "node needs attention"
-```
-
-## What it checks
-
-| Check | Severity | Why it matters |
+| Tool | Audits | How |
 | --- | --- | --- |
-| `rpcallowip=0.0.0.0/0` (or `::/0`) | CRITICAL | RPC reachable from the whole internet |
-| `rpcbind` on a public / wildcard interface | CRITICAL / HIGH | Full-control RPC exposed off-box |
-| RPC port listening on a non-loopback address | CRITICAL | The port is actually open, not just configured |
-| Plaintext `rpcpassword` in config | HIGH | Secret leaks via backups / other users |
-| Weak RPC password (low entropy) | HIGH / MEDIUM | Falls to a dictionary attempt if ever reachable |
-| `bitcoin.conf` readable by group/other with secrets | HIGH | Any local user can lift the credential |
-| Broad `rpcallowip` range (`/0`–`/7`) | HIGH | Trusts far more hosts than needed |
-| `rpcauth` / cookie auth in use | OK | No plaintext secret stored |
-| P2P port (8333) public | INFO | Normal and expected for a reachable node |
+| `node_audit.py` | Bitcoin Core | local config + file perms + local sockets |
+| `lightning_audit.py` | lnd / Core Lightning | local config + credential-file perms + local sockets |
+| `miner_audit.py` | one ASIC/GPU miner | single-target, read-only API query + TCP reachability |
+| `audit_common.py` | — | shared severity model, reporting, helpers |
 
-## Fixing what it finds
+Shared conventions:
 
-Start from [`bitcoin.conf.hardened.example`](./bitcoin.conf.hardened.example).
-The essentials:
+- **Severities:** 🔴 CRITICAL · 🟠 HIGH · 🟡 MEDIUM · 🔵 LOW · ⚪ INFO · 🟢 OK
+- **Output:** terminal by default; `--output report.md` for Markdown; `--json`
+  for machine-readable.
+- **Exit code:** non-zero if any CRITICAL/HIGH finding — wire it into cron/CI.
+- **No weaponization:** `miner_audit.py` takes a single host and refuses
+  ranges/CIDRs/lists; nothing here tests passwords or sends control commands.
 
-1. **Bind RPC to localhost** — `rpcbind=127.0.0.1`, `rpcallowip=127.0.0.1`.
-2. **No plaintext secret** — use cookie auth (the default) or a salted
-   `rpcauth` line, never `rpcpassword`.
-3. **Reach RPC remotely over SSH**, not a public bind:
-   `ssh -N -L 8332:127.0.0.1:8332 you@your-node`.
-4. **Lock down files** — `chmod 700 ~/.bitcoin`, `chmod 600 bitcoin.conf`.
-5. **Firewall the ports** you don't serve publicly.
+Practice safely in [`lab/`](./lab/README.md): regtest `bitcoind`, sample
+Lightning configs, and a fake-miner emulator.
+
+---
+
+## `node_audit.py` — Bitcoin Core
+
+```bash
+python3 node_audit.py                                   # auto-detect bitcoin.conf
+python3 node_audit.py --conf ~/.bitcoin/bitcoin.conf --output report.md
+python3 node_audit.py --json
+```
+
+| Check | Severity | Why |
+| --- | --- | --- |
+| `rpcallowip=0.0.0.0/0` | CRITICAL | RPC reachable from the whole internet |
+| public / wildcard `rpcbind` | CRITICAL / HIGH | full-control RPC exposed off-box |
+| RPC port listening off-loopback | CRITICAL | the port is actually open |
+| plaintext `rpcpassword` | HIGH | secret leaks via backups / other users |
+| weak RPC password | HIGH / MEDIUM | low entropy falls to a dictionary attempt |
+| `bitcoin.conf` readable by others + secrets | HIGH | any local user lifts the credential |
+| broad `rpcallowip` (`/0`–`/7`) | HIGH | trusts far more hosts than needed |
+| `rpcauth` / cookie auth | OK | no plaintext secret stored |
+| P2P port (8333) public | INFO | normal for a reachable node |
+
+## `lightning_audit.py` — lnd / Core Lightning
+
+```bash
+python3 lightning_audit.py --impl lnd --conf ~/.lnd/lnd.conf --dir ~/.lnd
+python3 lightning_audit.py --impl cln --conf ~/.lightning/config --dir ~/.lightning
+python3 lightning_audit.py                               # auto-detect
+```
+
+| Check | Severity | Why |
+| --- | --- | --- |
+| lnd `rpclisten` public (10009) | CRITICAL | gRPC full-control interface exposed |
+| lnd `no-macaroons=true` | CRITICAL | authentication disabled |
+| lnd `restlisten` public (8080) | HIGH | REST control API exposed |
+| `admin.macaroon` readable by others | HIGH | anyone local can control the node |
+| CLN gRPC/clnrest with public bind | HIGH | control API reachable off-box |
+| `lightning-rpc` socket accessible by others | CRITICAL | local users control the node |
+| exposed LN control port on a socket | CRITICAL / HIGH | the port is actually open |
+| LN P2P port (9735) public | INFO | normal for a routing node |
+
+`--dir` points at the node home (`~/.lnd` or `~/.lightning`) so the tool can
+check `admin.macaroon` / `lightning-rpc` permissions.
+
+## `miner_audit.py` — one miner you own
+
+```bash
+python3 miner_audit.py --target 192.168.1.50                 # CGMiner API + web reachability
+python3 miner_audit.py --target 192.168.1.50 --api-port 4028 --output report.md
+```
+
+- **Single target only.** Ranges/CIDRs/lists are rejected — it can audit your
+  miner, not sweep a network.
+- **Read-only.** It reads the CGMiner API's public `version` (what monitoring
+  dashboards read) and makes a bare TCP connect to 80/443. It sends no control
+  commands and **tests no passwords** — where a default-password risk exists it
+  tells you to verify it yourself.
+
+| Check | Severity | Why |
+| --- | --- | --- |
+| CGMiner API reachable on a routable address | MEDIUM | unauthenticated API exposed beyond localhost |
+| web admin reachable | LOW | panels often ship with default credentials (verify + restrict) |
+| miner identity / firmware | INFO | confirm the unit and keep firmware current |
+| API not reachable | OK | desired state for an unexposed device |
+
+## Fixing what they find
+
+- **Bitcoin Core:** [`bitcoin.conf.hardened.example`](./bitcoin.conf.hardened.example)
+  — localhost RPC, cookie/`rpcauth`, SSH tunnel for remote admin, tight file perms.
+- **Lightning:** bind gRPC/REST to localhost, keep macaroons on, hand out scoped
+  macaroons (never `admin.macaroon`), `chmod 600` credential files, `0700` dirs.
+- **Miner:** restrict the CGMiner API with `api-allow`/`api-network`, change
+  default web passwords, keep both on your management VLAN behind a VPN.
 
 ## Scope / ethics
 
-Run this only against infrastructure you own or have **written authorization**
-to test. Auditing your own node's configuration is always fine; probing,
-scanning, or attempting access against someone else's systems without
-permission is unauthorized access regardless of intent — this tool is built so
-that it simply can't do that.
+Run these only against infrastructure you own or have **written authorization**
+to test. Auditing your own config is always fine; probing, scanning, or
+attempting access against someone else's systems without permission is
+unauthorized access regardless of intent — these tools are built so they
+can't do that.
