@@ -9,6 +9,8 @@ and close exposure on **your own** nodes and miners before someone else does.
 > **not** scan networks, brute-force credentials, run exploits, or cause denial
 > of service. Use them only on systems you own or have written authorization to
 > test. Unauthorized scanning or access is illegal regardless of intent.
+>
+> Full scope and acceptable-use statement: [COMPLIANCE.md](./COMPLIANCE.md).
 
 ## What's inside
 
