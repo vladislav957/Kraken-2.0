@@ -1,0 +1,67 @@
+name: build-binaries
+
+# Build the standalone `kraken` executable on each OS (PyInstaller is not a
+# cross-compiler, so a Windows .exe must be built on Windows, etc.). Runs on
+# demand and on version tags; on a tag it also attaches the binaries to a
+# GitHub Release so people can just download and run — no Python required.
+
+on:
+  workflow_dispatch:        # "Run workflow" button in the Actions tab
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write           # needed to create/update the Release on a tag
+
+jobs:
+  build:
+    name: ${{ matrix.asset }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            ext: ""
+            asset: kraken-linux-x86_64
+          - os: windows-latest
+            ext: ".exe"
+            asset: kraken-windows-x86_64.exe
+          - os: macos-latest
+            ext: ""
+            asset: kraken-macos-arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"       # ships tkinter on all three OSes
+
+      - name: Install PyInstaller
+        run: python -m pip install --upgrade pip "pyinstaller>=6.0"
+
+      - name: Build standalone binary
+        run: pyinstaller --noconfirm --clean packaging/kraken.spec
+
+      - name: Name the binary per-OS
+        shell: bash
+        run: cp "dist/kraken${{ matrix.ext }}" "dist/${{ matrix.asset }}"
+
+      - name: Smoke test
+        shell: bash
+        run: "./dist/${{ matrix.asset }} --version"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}
+          if-no-files-found: error
+
+      - name: Attach to Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/${{ matrix.asset }}
+          fail_on_unmatched_files: true

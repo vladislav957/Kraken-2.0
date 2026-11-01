@@ -48,6 +48,11 @@ Two ways — full details in **[INSTALL.md](./INSTALL.md)**:
   ./dist/kraken node --conf ~/.bitcoin/bitcoin.conf
   ```
 
+  Windows (`kraken.exe`) and macOS build the same way (`packaging\build.ps1`
+  on Windows). GitHub Actions can build all three on a tag and attach them to
+  the [Releases](https://github.com/vladislav957/Kraken-2.0/releases) page —
+  see [INSTALL.md](./INSTALL.md).
+
 - **From source** — pure Python standard library, no pip dependencies
   (`python3 node_audit.py …`). See the Quickstart below.
 

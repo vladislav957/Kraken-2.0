@@ -62,6 +62,50 @@ inside, so the target box needs none of them.
 > newer glibc may not run on older ones. Build separately for each target
 > (Linux x86-64, Linux arm64, macOS, …); binaries are not cross-platform.
 
+### Windows (`kraken.exe`)
+
+PyInstaller is **not** a cross-compiler — a Windows `.exe` must be built **on
+Windows**. Two ways to get one:
+
+- **Download it** — once a `v*` tag is pushed, GitHub Actions builds
+  `kraken-windows-x86_64.exe` and attaches it to the
+  [Releases](https://github.com/vladislav957/Kraken-2.0/releases) page. Grab it,
+  then double-click, or from a terminal:
+
+  ```powershell
+  .\kraken.exe --help
+  .\kraken.exe exposure
+  .\kraken.exe node --conf $env:APPDATA\Bitcoin\bitcoin.conf
+  ```
+
+- **Build it yourself** — on a Windows PC with
+  [Python 3.10+](https://www.python.org/downloads/windows/) (the installer
+  bundles Tk):
+
+  ```powershell
+  git clone -b claude/amazing-turing-qerm47 https://github.com/vladislav957/Kraken-2.0.git
+  cd Kraken-2.0
+  powershell -ExecutionPolicy Bypass -File packaging\build.ps1
+  # -> dist\kraken.exe
+  ```
+
+> The `.exe` is a console app that also opens the GUI window — run it from
+> `cmd`/PowerShell for the CLI, or double-click it to open the desktop app.
+
+### Prebuilt downloads for every OS (GitHub Releases)
+
+You don't have to build anything yourself. The
+[`build-binaries`](./.github/workflows/build.yml) workflow builds Linux,
+Windows and macOS binaries on GitHub's runners:
+
+- **On demand:** Actions tab → *build-binaries* → *Run workflow* → download the
+  artifacts.
+- **On a release:** push a tag and the binaries are attached to the Release:
+
+  ```bash
+  git tag v1.0.0 && git push origin v1.0.0
+  ```
+
 ---
 
 ## B. From source — the classic way (needs Python)
