@@ -29,3 +29,10 @@ hardened one (clean, exit 0):
 document with an overall Security Score:
 
 ![Sample report](./sample-report.png)
+
+## Desktop app — all tabs
+
+The four tabs of `kraken_app.py` — Bitcoin Core, Lightning, Miner and Exposure —
+each with a live audit and the shared Security Score widget (sample data):
+
+![Desktop app](./desktop-app.png)

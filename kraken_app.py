@@ -129,6 +129,7 @@ class KrakenApp:
     # ---- tabs ----
     def _build_tabs(self):
         nb = ttk.Notebook(self.root); nb.pack(fill="both", expand=True, padx=16, pady=(0, 16))
+        self.nb = nb
         self.outputs = {}
         self.inputs = {}
 
