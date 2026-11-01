@@ -41,9 +41,11 @@ Two ways — full details in **[INSTALL.md](./INSTALL.md)**:
   needs no Python, pip or Tk:
 
   ```bash
+  git clone -b claude/amazing-turing-qerm47 https://github.com/vladislav957/Kraken-2.0.git
+  cd Kraken-2.0
   ./packaging/build.sh            # -> dist/kraken  (self-contained)
-  ./kraken                        # launch the desktop app
-  ./kraken node --conf ~/.bitcoin/bitcoin.conf
+  ./dist/kraken                   # launch the desktop app
+  ./dist/kraken node --conf ~/.bitcoin/bitcoin.conf
   ```
 
 - **From source** — pure Python standard library, no pip dependencies
