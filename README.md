@@ -31,6 +31,24 @@ CRITICAL/HIGH findings for use in cron/CI.
 
 Full reference: **[AUDIT.md](./AUDIT.md)**.
 
+## Install
+
+Two ways — full details in **[INSTALL.md](./INSTALL.md)**:
+
+- **No Python required** — a single standalone binary bundling every auditor
+  *and* the desktop app. Build once with `./packaging/build.sh`, then copy
+  `dist/kraken` to any machine of the same OS/arch and run it — the target
+  needs no Python, pip or Tk:
+
+  ```bash
+  ./packaging/build.sh            # -> dist/kraken  (self-contained)
+  ./kraken                        # launch the desktop app
+  ./kraken node --conf ~/.bitcoin/bitcoin.conf
+  ```
+
+- **From source** — pure Python standard library, no pip dependencies
+  (`python3 node_audit.py …`). See the Quickstart below.
+
 ## Quickstart
 
 ```bash
