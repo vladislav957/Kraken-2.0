@@ -20,6 +20,8 @@ and close exposure on **your own** nodes and miners before someone else does.
 | [`lightning_audit.py`](./lightning_audit.py) | lnd / Core Lightning | local config + macaroon/socket perms + local sockets |
 | [`miner_audit.py`](./miner_audit.py) | one ASIC/GPU miner | single-target, read-only CGMiner API + TCP reachability |
 | [`audit_common.py`](./audit_common.py) | — | shared severity model, reporting, single-target guard |
+| [`kraken_core.py`](./kraken_core.py) | — | the audit engine: one API every front-end calls |
+| [`kraken_app.py`](./kraken_app.py) | — | native desktop app (Tkinter) with a Security Score widget |
 
 Each tool prints findings with a severity (🔴 CRITICAL … 🟢 OK) and a concrete
 fix, supports `--output report.md` and `--json`, and exits non-zero on
@@ -40,17 +42,18 @@ python3 lightning_audit.py --impl lnd --conf ~/.lnd/lnd.conf --dir ~/.lnd
 python3 miner_audit.py --target 192.168.1.50
 ```
 
-## Web UI
+## Desktop app
 
-Prefer a GUI? A local, dependency-free web app wraps the same auditors, with a
-**Security Score** widget:
+Prefer a GUI? A native desktop app (Tkinter — standard library, no browser, no
+dependencies) wraps the same auditors, with a **Security Score** widget:
 
 ```bash
-python3 webui/server.py          # → http://127.0.0.1:8787
+python3 kraken_app.py
 ```
 
-It binds to localhost and only runs the read-only auditors. See
-[webui/README.md](./webui/README.md).
+It is built on [`kraken_core.py`](./kraken_core.py), the shared audit engine
+that every front-end (CLI, app) calls. If Tk is missing, install it
+(e.g. `sudo apt install python3-tk`).
 
 ## Practice safely
 
