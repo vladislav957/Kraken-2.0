@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field, asdict
+from datetime import datetime, timezone
 
 import audit_common as ac
 import node_audit
@@ -157,3 +158,59 @@ def overall(results) -> Score:
     grade = ("A" if score >= 90 else "B" if score >= 75 else
              "C" if score >= 60 else "D" if score >= 40 else "F")
     return Score(score, grade, worst, _STATUS.get(worst, "Reviewed"), totals)
+
+
+# --------------------------------------------------------------------------- #
+# Combined report (one document over several audits)
+# --------------------------------------------------------------------------- #
+
+def _now():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
+
+def report_dict(results, generated=None) -> dict:
+    """Combine several AuditResult into one report structure (for JSON)."""
+    results = [r for r in results if r]
+    sc = overall(results)
+    return {
+        "tool": "kraken-audit",
+        "generated": generated or _now(),
+        "exit_code": 1 if any(r.exit_code for r in results) else 0,
+        "score": {"score": sc.score, "grade": sc.grade, "worst": sc.worst,
+                  "label": sc.label, "totals": sc.totals},
+        "sections": [r.to_dict() for r in results],
+    }
+
+
+def report_markdown(results, generated=None) -> str:
+    """Render several AuditResult as one Markdown report."""
+    results = [r for r in results if r]
+    sc = overall(results)
+    exit_code = 1 if any(r.exit_code for r in results) else 0
+    label = {"node": "Bitcoin Core", "lightning": "Lightning", "miner": "Miner"}
+    out = ["# Kraken Audit — Report", "",
+           f"- Generated: {generated or _now()}",
+           f"- Overall: **{sc.label}** · score {sc.score}/100 ({sc.grade})",
+           f"- Exit code: {exit_code}", "", "## Summary", "",
+           "| Severity | Count |", "| --- | --- |"]
+    for sev in SEVERITY_ORDER:
+        if sc.totals.get(sev):
+            out.append(f"| {ac.SEVERITY_LABEL[sev]} | {sc.totals[sev]} |")
+    out.append("")
+    for r in results:
+        meta = " · ".join(f"{k}: `{v}`" for k, v in r.meta.items())
+        out.append(f"## {label.get(r.tool, r.tool)}")
+        out.append(f"{meta} · exit {r.exit_code}\n")
+        if not r.findings:
+            out.append("_No findings._\n")
+        for f in r.findings:
+            out.append(f"### {ac.SEVERITY_LABEL[f.severity]} — {f.title}")
+            out.append(f"*check: `{f.check}`*\n")
+            out.append(f"{f.detail}\n")
+            if f.remediation:
+                out.append(f"**Fix:** {f.remediation}\n")
+    out.append("---")
+    out.append("_Defensive, read-only audit of infrastructure the operator owns "
+               "or is authorized to test. No scanning, brute-forcing, exploits, "
+               "or denial of service._")
+    return "\n".join(out)

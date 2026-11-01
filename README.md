@@ -22,6 +22,7 @@ and close exposure on **your own** nodes and miners before someone else does.
 | [`audit_common.py`](./audit_common.py) | — | shared severity model, reporting, single-target guard |
 | [`kraken_core.py`](./kraken_core.py) | — | the audit engine: one API every front-end calls |
 | [`kraken_app.py`](./kraken_app.py) | — | native desktop app (Tkinter) with a Security Score widget |
+| [`kraken_report.py`](./kraken_report.py) | — | run several audits → one Markdown / JSON report |
 
 Each tool prints findings with a severity (🔴 CRITICAL … 🟢 OK) and a concrete
 fix, supports `--output report.md` and `--json`, and exits non-zero on
@@ -40,7 +41,12 @@ python3 lightning_audit.py --impl lnd --conf ~/.lnd/lnd.conf --dir ~/.lnd
 
 # Audit one miner you own (single host only — ranges/CIDRs are refused)
 python3 miner_audit.py --target 192.168.1.50
+
+# Combine several into one report (Markdown + JSON) with an overall score
+python3 kraken_report.py --node ~/.bitcoin/bitcoin.conf --miner 192.168.1.50 --output report.md
 ```
+
+Diagrams and sample output are in [docs/](./docs/README.md).
 
 ## Desktop app
 

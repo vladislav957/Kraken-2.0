@@ -44,6 +44,21 @@ class TestCore(unittest.TestCase):
         with self.assertRaises(core.ac.TargetError):
             core.audit_miner("10.0.0.0/8")
 
+    def test_report_dict(self):
+        n = core.audit_node(conf("insecure.bitcoin.conf"), check_sockets=False)
+        l = core.audit_lightning("lnd", conf("lnd.insecure.conf"), check_sockets=False)
+        d = core.report_dict([n, l], generated="2026-01-01 00:00 UTC")
+        self.assertEqual(d["exit_code"], 1)
+        self.assertEqual(d["score"]["grade"], "F")
+        self.assertEqual([s["tool"] for s in d["sections"]], ["node", "lightning"])
+
+    def test_report_markdown(self):
+        n = core.audit_node(conf("insecure.bitcoin.conf"), check_sockets=False)
+        md = core.report_markdown([n], generated="2026-01-01 00:00 UTC")
+        self.assertIn("# Kraken Audit — Report", md)
+        self.assertIn("## Summary", md)
+        self.assertIn("rpc-allowip-world", md)
+
 
 if __name__ == "__main__":
     unittest.main()
