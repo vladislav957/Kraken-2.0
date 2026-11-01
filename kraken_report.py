@@ -36,6 +36,8 @@ def main(argv=None):
     p.add_argument("--ln-dir", metavar="DIR", help="Lightning home (~/.lnd / ~/.lightning).")
     p.add_argument("--miner", metavar="HOST", help="One miner host you own (no ranges).")
     p.add_argument("--api-port", type=int, default=4028)
+    p.add_argument("--exposure", action="store_true",
+                   help="Include a local network-exposure audit of this host.")
     p.add_argument("--no-sockets", action="store_true", help="Skip local socket checks.")
     p.add_argument("--output", metavar="FILE", help="Write the Markdown report here.")
     p.add_argument("--json", metavar="FILE", help="Write the JSON report here.")
@@ -55,9 +57,12 @@ def main(argv=None):
             results.append(core.audit_miner(args.miner, args.api_port))
         except ac.TargetError as exc:
             p.error(str(exc))
+    if args.exposure:
+        results.append(core.audit_exposure())
 
     if not results:
-        p.error("Nothing to audit — pass at least one of --node / --lnd / --cln / --miner.")
+        p.error("Nothing to audit — pass at least one of "
+                "--node / --lnd / --cln / --miner / --exposure.")
 
     md = core.report_markdown(results)
 

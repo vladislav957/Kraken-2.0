@@ -24,6 +24,7 @@ import audit_common as ac
 import node_audit
 import lightning_audit
 import miner_audit
+import exposure_audit
 
 SEVERITY_ORDER = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO", "OK"]
 # How many points each finding subtracts from a perfect 100.
@@ -115,6 +116,12 @@ def audit_miner(target: str, api_port: int = 4028,
     return AuditResult("miner", {"target": f"{host}:{port}"}, findings)
 
 
+def audit_exposure() -> AuditResult:
+    """What of THIS machine is reachable off-box (local sockets only)."""
+    host = os.uname().nodename if hasattr(os, "uname") else "this host"
+    return AuditResult("exposure", {"host": host}, exposure_audit.check_exposure())
+
+
 # --------------------------------------------------------------------------- #
 # Aggregate score (for a status widget)
 # --------------------------------------------------------------------------- #
@@ -187,7 +194,8 @@ def report_markdown(results, generated=None) -> str:
     results = [r for r in results if r]
     sc = overall(results)
     exit_code = 1 if any(r.exit_code for r in results) else 0
-    label = {"node": "Bitcoin Core", "lightning": "Lightning", "miner": "Miner"}
+    label = {"node": "Bitcoin Core", "lightning": "Lightning", "miner": "Miner",
+             "exposure": "Network exposure"}
     out = ["# Kraken Audit — Report", "",
            f"- Generated: {generated or _now()}",
            f"- Overall: **{sc.label}** · score {sc.score}/100 ({sc.grade})",

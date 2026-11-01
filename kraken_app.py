@@ -40,7 +40,8 @@ SEV = {"CRITICAL": "#ff5468", "HIGH": "#ff914d", "MEDIUM": "#ffd23f",
 class KrakenApp:
     def __init__(self, root: "tk.Tk"):
         self.root = root
-        self.results = {"node": None, "lightning": None, "miner": None}
+        self.results = {"node": None, "lightning": None, "miner": None,
+                        "exposure": None}
         self.ui_queue: "queue.Queue" = queue.Queue()
 
         root.title("Kraken Audit")
@@ -173,6 +174,16 @@ class KrakenApp:
         self.inputs["miner"] = {"target": tgt, "port": port, "web": web}
         self.outputs["miner"] = self._findings_box(t)
 
+        # Exposure (local only)
+        t = ttk.Frame(nb); nb.add(t, text="  Exposure  ")
+        row = ttk.Frame(t); row.pack(fill="x", padx=12, pady=10)
+        ttk.Label(row, text="What of THIS host is reachable off-box (local sockets only):",
+                  style="Muted.TLabel").pack(side="left")
+        ttk.Button(row, text="Run audit", style="Run.TButton",
+                   command=lambda: self._run("exposure")).pack(side="left", padx=8)
+        self.inputs["exposure"] = {}
+        self.outputs["exposure"] = self._findings_box(t)
+
     def _findings_box(self, parent):
         box = scrolledtext.ScrolledText(parent, bg="#0c0f16", fg=FG, bd=0,
                                         insertbackground=FG, wrap="word",
@@ -215,6 +226,8 @@ class KrakenApp:
                 elif tool == "lightning":
                     res = core.audit_lightning(inp["impl"].get(), self._val(inp["conf"]),
                                                self._val(inp["dir"]), inp["sockets"].get())
+                elif tool == "exposure":
+                    res = core.audit_exposure()
                 else:
                     try:
                         port = int(self._val(inp["port"]) or 4028)

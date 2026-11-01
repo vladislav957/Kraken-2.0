@@ -19,6 +19,7 @@ and close exposure on **your own** nodes and miners before someone else does.
 | [`node_audit.py`](./node_audit.py) | Bitcoin Core | local `bitcoin.conf` + file perms + local sockets |
 | [`lightning_audit.py`](./lightning_audit.py) | lnd / Core Lightning | local config + macaroon/socket perms + local sockets |
 | [`miner_audit.py`](./miner_audit.py) | one ASIC/GPU miner | single-target, read-only CGMiner API + TCP reachability |
+| [`exposure_audit.py`](./exposure_audit.py) | this host's network exposure | lists local sockets, flags anything reachable off-box (never scans other hosts) |
 | [`audit_common.py`](./audit_common.py) | — | shared severity model, reporting, single-target guard |
 | [`kraken_core.py`](./kraken_core.py) | — | the audit engine: one API every front-end calls |
 | [`kraken_app.py`](./kraken_app.py) | — | native desktop app (Tkinter) with a Security Score widget |
@@ -44,6 +45,9 @@ python3 miner_audit.py --target 192.168.1.50
 
 # Combine several into one report (Markdown + JSON) with an overall score
 python3 kraken_report.py --node ~/.bitcoin/bitcoin.conf --miner 192.168.1.50 --output report.md
+
+# What of THIS host is reachable off-box (local sockets only; never scans others)
+python3 exposure_audit.py
 ```
 
 Diagrams and sample output are in [docs/](./docs/README.md).
