@@ -16,16 +16,22 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 
-# Find a Python that has Tkinter (the desktop app needs it); fall back to any
-# Python 3 (binary still builds, CLI works, GUI just won't be available).
+CANDIDATES="python3 python3.14 python3.13 python3.12 python3.11 python3.10"
+has()      { command -v "$1" >/dev/null 2>&1; }
+has_tk()   { "$1" -c "import tkinter" >/dev/null 2>&1; }
+has_venv() { "$1" -c "import ensurepip" >/dev/null 2>&1; }   # needed to create a venv
+
+# Prefer a Python with BOTH Tkinter (for the GUI) and a working venv; then one
+# with Tkinter only; then any Python 3 at all.
 pick_python() {
-    for c in python3 python3.13 python3.12 python3.11 python3.10; do
-        if command -v "$c" >/dev/null 2>&1 && "$c" -c "import tkinter" >/dev/null 2>&1; then
-            echo "$c"; return 0
-        fi
+    for c in $CANDIDATES; do
+        if has "$c" && has_tk "$c" && has_venv "$c"; then echo "$c"; return 0; fi
     done
-    for c in python3 python3.12 python3.11 python3.10; do
-        if command -v "$c" >/dev/null 2>&1; then echo "$c"; return 0; fi
+    for c in $CANDIDATES; do
+        if has "$c" && has_tk "$c"; then echo "$c"; return 0; fi
+    done
+    for c in $CANDIDATES; do
+        if has "$c"; then echo "$c"; return 0; fi
     done
     return 1
 }
@@ -38,9 +44,23 @@ else
     echo "[!] Tkinter NOT found in $PY — the CLI will work but the bundled GUI will not."
 fi
 
+# Make sure we can actually create a venv before trying (Debian/Ubuntu split
+# this into a separate pythonX.Y-venv package).
+if ! has_venv "$PY"; then
+    VER="$("$PY" -c 'import sys;print(f"python3.{sys.version_info.minor}")')"
+    echo "[!] $PY can't create virtualenvs (ensurepip/venv missing)." >&2
+    echo "    Install it, then re-run this script:" >&2
+    echo >&2
+    echo "        sudo apt install ${VER}-venv        # Debian/Ubuntu" >&2
+    echo "        # (Fedora/RHEL: python3 -m ensurepip is usually built in)" >&2
+    echo >&2
+    exit 1
+fi
+
 VENV="${KRAKEN_BUILD_VENV:-.build-venv}"
 if [ ! -x "$VENV/bin/pyinstaller" ]; then
     echo "[*] Creating one-time build environment in $VENV/ ..."
+    rm -rf "$VENV"                       # drop any half-made venv from a prior failed run
     "$PY" -m venv "$VENV"
     "$VENV/bin/python" -m pip install --upgrade pip >/dev/null
     "$VENV/bin/python" -m pip install "pyinstaller>=6.0"
