@@ -219,24 +219,36 @@ class KrakenApp:
         self._write(box, [("Running audit…\n", "muted")])
         inp = self.inputs[tool]
 
+        # Read all widget values on the MAIN thread; the worker only touches the
+        # pure engine (Tk is not thread-safe).
+        if tool == "node":
+            params = {"conf": self._val(inp["conf"]), "sockets": inp["sockets"].get()}
+        elif tool == "lightning":
+            params = {"impl": inp["impl"].get(), "conf": self._val(inp["conf"]),
+                      "dir": self._val(inp["dir"]), "sockets": inp["sockets"].get()}
+        elif tool == "miner":
+            try:
+                port = int(self._val(inp["port"]) or 4028)
+            except ValueError:
+                port = 4028
+            params = {"target": self._val(inp["target"]), "port": port,
+                      "web": inp["web"].get()}
+        else:
+            params = {}
+
         def work():
             try:
                 if tool == "node":
-                    res = core.audit_node(self._val(inp["conf"]), inp["sockets"].get())
+                    res = core.audit_node(params["conf"], params["sockets"])
                 elif tool == "lightning":
-                    res = core.audit_lightning(inp["impl"].get(), self._val(inp["conf"]),
-                                               self._val(inp["dir"]), inp["sockets"].get())
+                    res = core.audit_lightning(params["impl"], params["conf"],
+                                               params["dir"], params["sockets"])
                 elif tool == "exposure":
                     res = core.audit_exposure()
                 else:
-                    try:
-                        port = int(self._val(inp["port"]) or 4028)
-                    except ValueError:
-                        port = 4028
-                    tgt = self._val(inp["target"])
-                    if not tgt:
+                    if not params["target"]:
                         raise ValueError("Enter a single miner host you own.")
-                    res = core.audit_miner(tgt, port, inp["web"].get())
+                    res = core.audit_miner(params["target"], params["port"], params["web"])
                 self.ui_queue.put((tool, res, None))
             except ac.TargetError as e:
                 self.ui_queue.put((tool, None, str(e)))
