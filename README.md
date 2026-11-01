@@ -40,6 +40,18 @@ python3 lightning_audit.py --impl lnd --conf ~/.lnd/lnd.conf --dir ~/.lnd
 python3 miner_audit.py --target 192.168.1.50
 ```
 
+## Web UI
+
+Prefer a GUI? A local, dependency-free web app wraps the same auditors, with a
+**Security Score** widget:
+
+```bash
+python3 webui/server.py          # → http://127.0.0.1:8787
+```
+
+It binds to localhost and only runs the read-only auditors. See
+[webui/README.md](./webui/README.md).
+
 ## Practice safely
 
 A regtest lab is included so you can run the auditors against live-ish targets
